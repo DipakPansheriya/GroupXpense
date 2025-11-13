@@ -24,11 +24,16 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies with Angular CLI
+        run: |
+          npm ci
+          npm install -g @angular/cli
+
+      - name: Verify installation
+        run: ng version
 
       - name: Build Angular application
-        run: npm run build -- --configuration=production
+        run: ng build --configuration=production
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
