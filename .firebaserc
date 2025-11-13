@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "groupxpense-4153f"
-  }
+  },
+  "targets": {
+    "groupxpense-4153f": {
+      "hosting": {
+        "tr": [
+          "grouptrip"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
