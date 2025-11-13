@@ -1,0 +1,193 @@
+<div class="balance-report-container">
+  <!-- Header Section -->
+  <div class="report-header" *ngIf="currentGroup">
+    <div class="header-nav">
+  <button class="nav-button back-btn" (click)="goBackToGroups()">
+    <span class="btn-icon">←</span>
+    Back
+  </button>
+  <button class="nav-button refresh-btn" (click)="refreshData()" title="Refresh balances">
+    <span class="btn-icon">🔄</span>
+    Refresh
+  </button>
+  <button class="nav-button share-btn" (click)="copyMemberViewLink()" title="Copy member view link">
+    <span class="btn-icon">📋</span>
+    Share Report
+  </button>
+</div>
+    
+    <div class="group-info">
+      <div class="group-avatar">
+        <span class="avatar-icon">📊</span>
+      </div>
+      <div class="group-details">
+        <h1 class="group-name">{{ currentGroup.name }}</h1>
+        <p class="group-meta">{{ currentGroup.participants.length }} participants • {{ currentGroup.currency }}</p>
+      </div>
+    </div>
+
+    <div class="total-expenses-card">
+      <div class="total-icon">💰</div>
+      <div class="total-info">
+        <div class="total-label">Total Expenses</div>
+        <div class="total-amount">{{ formatCurrency(totalExpenses) }}</div>
+        <div class="update-status">Live updates • All currencies in {{ currentGroup.currency }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Group Selected -->
+  <div *ngIf="!currentGroup" class="empty-state">
+    <div class="empty-content">
+      <div class="empty-icon">📊</div>
+      <h2>No Group Selected</h2>
+      <p>Select a group to view the balance report</p>
+      <button class="action-btn primary" (click)="goBackToGroups()">
+        <span class="btn-icon">👥</span>
+        Browse Groups
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="report-content" *ngIf="currentGroup">
+    
+    <!-- Balance Summary -->
+    <section class="balance-section" *ngIf="currentGroup.participants.length > 0">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="title-icon">⚖️</span>
+          Balance Summary
+        </h2>
+        <div class="section-subtitle">Who owes whom and how much?</div>
+      </div>
+
+      <div class="balance-cards">
+        <div *ngFor="let participant of currentGroup.participants" 
+             class="balance-card"
+             [class.positive]="(balances.get(participant) || 0) > 0"
+             [class.negative]="(balances.get(participant) || 0) < 0"
+             [class.settled]="(balances.get(participant) || 0) === 0">
+          
+          <div class="participant-header">
+            <div class="participant-info">
+              <div class="participant-avatar">
+                <span class="avatar-icon">👤</span>
+              </div>
+              <div class="participant-details">
+                <h3 class="participant-name">{{ participant }}</h3>
+                <div class="participant-stats">
+                  <span class="stat paid">Paid: {{ formatCurrency(getParticipantPaid(participant)) }}</span>
+                  <span class="stat charged">Charged: {{ formatCurrency(getParticipantCharged(participant)) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="balance-amount" 
+                 [class.positive]="(balances.get(participant) || 0) > 0"
+                 [class.negative]="(balances.get(participant) || 0) < 0">
+              {{ formatCurrency(balances.get(participant) || 0) }}
+            </div>
+          </div>
+
+          <div class="balance-status">
+            <div class="status-indicator" 
+                 [class.owed]="(balances.get(participant) || 0) > 0"
+                 [class.owes]="(balances.get(participant) || 0) < 0"
+                 [class.settled]="(balances.get(participant) || 0) === 0">
+              <span class="status-icon">
+                {{ (balances.get(participant) || 0) > 0 ? '💚' : 
+                    (balances.get(participant) || 0) < 0 ? '🔴' : '✅' }}
+              </span>
+              <span class="status-text">
+                {{ (balances.get(participant) || 0) > 0 ? 'Gets back' : 
+                    (balances.get(participant) || 0) < 0 ? 'Owes' : 'Settled' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settlement Instructions -->
+    <section class="settlement-section" *ngIf="settlements.length > 0">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="title-icon">💸</span>
+          Settlement Plan
+        </h2>
+        <div class="section-subtitle">Minimum transactions to settle all debts</div>
+      </div>
+
+      <div class="settlement-cards">
+        <div *ngFor="let settlement of settlements; let i = index" class="settlement-card">
+          <div class="settlement-header">
+            <div class="step-badge">Step {{ i + 1 }}</div>
+            <div class="settlement-amount">{{ formatCurrency(settlement.amount) }}</div>
+          </div>
+          
+          <div class="settlement-flow">
+            <div class="from-person">
+              <span class="person-avatar">👤</span>
+              <span class="person-name">{{ settlement.from }}</span>
+            </div>
+            
+            <div class="transfer-arrow">
+              <div class="arrow-line"></div>
+              <div class="arrow-head">→</div>
+              <div class="transfer-label">pays</div>
+            </div>
+            
+            <div class="to-person">
+              <span class="person-avatar">👤</span>
+              <span class="person-name">{{ settlement.to }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settlement-tip">
+        <div class="tip-icon">💡</div>
+        <div class="tip-content">
+          <strong>Pro Tip:</strong> Follow these steps to completely settle all group expenses
+        </div>
+      </div>
+    </section>
+
+    <!-- All Settled State -->
+    <section class="celebrate-section" *ngIf="settlements.length === 0 && currentGroup.participants.length > 0 && totalExpenses > 0">
+      <div class="celebrate-content">
+        <div class="celebrate-icon">🎉</div>
+        <h2>All Settled Up!</h2>
+        <p>Perfect! No money needs to be exchanged between participants.</p>
+        <div class="celebrate-subtext">Everyone has paid their fair share</div>
+      </div>
+    </section>
+
+    <!-- No Expenses State -->
+    <section *ngIf="currentGroup && totalExpenses === 0" class="empty-state">
+      <div class="empty-content">
+        <div class="empty-icon">💸</div>
+        <h2>No Expenses Yet</h2>
+        <p>Start adding expenses to see balance calculations</p>
+        <button class="action-btn primary" (click)="goBackToGroups()">
+          <span class="btn-icon">➕</span>
+          Add First Expense
+        </button>
+      </div>
+    </section>
+
+    <!-- No Participants State -->
+    <section *ngIf="currentGroup && currentGroup.participants.length === 0" class="empty-state">
+      <div class="empty-content">
+        <div class="empty-icon">👥</div>
+        <h2>No Participants</h2>
+        <p>Add participants to start tracking expenses</p>
+        <button class="action-btn primary" (click)="goBackToGroups()">
+          <span class="btn-icon">✏️</span>
+          Add Participants
+        </button>
+      </div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,198 @@
+<div class="login-container">
+    <!-- Background Animation -->
+    <div class="login-background">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+        </div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+        <!-- Header -->
+        <div class="login-header">
+            <div class="app-logo">
+                <span class="logo-icon">💰</span>
+                <h1 class="app-name">Group Xpense</h1>
+            </div>
+            <p class="app-tagline">{{ isSignupMode ? 'Create your account' : 'Split expenses with friends & family' }}</p>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+            <div class="toggle-container">
+                <button class="mode-btn {{ !isSignupMode ? 'active' : '' }}" (click)="setMode(false)">
+                    <span class="btn-text">Sign In</span>
+                    <span class="active-indicator"></span>
+                </button>
+                <button class="mode-btn {{ isSignupMode ? 'active' : '' }}" (click)="setMode(true)">
+                    <span class="btn-text">Sign Up</span>
+                    <span class="active-indicator"></span>
+                </button>
+                <div class="toggle-slider {{ isSignupMode ? 'signup-active' : 'login-active' }}"></div>
+            </div>
+        </div>
+
+        <!-- Login/Signup Form -->
+        <form class="login-form" (ngSubmit)="isSignupMode ? onSignup() : onLogin()">
+            <!-- Name Field (Signup Only) -->
+            <div class="form-section" *ngIf="isSignupMode">
+                <label class="input-label">
+                    <span class="label-icon">👤</span>
+                    Full Name
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        [(ngModel)]="userData.name" 
+                        name="name"
+                        placeholder="Enter your full name"
+                        class="modern-input"
+                        required>
+                    <div class="input-icon">👤</div>
+                </div>
+            </div>
+
+            <!-- Mobile Field (Signup Only) -->
+            <div class="form-section" *ngIf="isSignupMode">
+                <label class="input-label">
+                    <span class="label-icon">📱</span>
+                    Mobile Number
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="tel" 
+                        [(ngModel)]="userData.mobile" 
+                        name="mobile"
+                        placeholder="Enter your mobile number"
+                        class="modern-input"
+                        pattern="[0-9]{10}"
+                        maxlength="10"
+                        required>
+                    <div class="input-icon">📱</div>
+                </div>
+                <div class="password-hint">
+                    Must be 10 digits
+                </div>
+            </div>
+
+            <!-- Email Field -->
+            <div class="form-section">
+                <label class="input-label">
+                    <span class="label-icon">📧</span>
+                    Email Address
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="email" 
+                        [(ngModel)]="userData.email" 
+                        name="email"
+                        [placeholder]="isSignupMode ? 'Enter your email' : 'Enter your email'"
+                        class="modern-input"
+                        required>
+                    <div class="input-icon">📧</div>
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-section">
+                <label class="input-label">
+                    <span class="label-icon">🔒</span>
+                    Password
+                </label>
+                <div class="input-group">
+                    <input 
+                        [type]="showPassword ? 'text' : 'password'"
+                        [(ngModel)]="userData.password" 
+                        name="password"
+                        [placeholder]="isSignupMode ? 'Create a password (min. 6 characters)' : 'Enter your password'"
+                        class="modern-input"
+                        [minlength]="isSignupMode ? 6 : 0"
+                        required>
+                    <button 
+                        type="button" 
+                        class="password-toggle"
+                        (click)="showPassword = !showPassword">
+                        <span class="toggle-icon">{{ showPassword ? '🙈' : '👁️' }}</span>
+                    </button>
+                </div>
+                <div *ngIf="isSignupMode" class="password-hint">
+                    Must be at least 6 characters long
+                </div>
+            </div>
+
+            <!-- Confirm Password Field (Signup Only) -->
+            <div class="form-section" *ngIf="isSignupMode">
+                <label class="input-label">
+                    <span class="label-icon">🔒</span>
+                    Confirm Password
+                </label>
+                <div class="input-group">
+                    <input 
+                        [type]="showConfirmPassword ? 'text' : 'password'"
+                        [(ngModel)]="userData.confirmPassword" 
+                        name="confirmPassword"
+                        placeholder="Confirm your password"
+                        class="modern-input"
+                        required>
+                    <button 
+                        type="button" 
+                        class="password-toggle"
+                        (click)="showConfirmPassword = !showConfirmPassword">
+                        <span class="toggle-icon">{{ showConfirmPassword ? '🙈' : '👁️' }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember Me (Login Only) -->
+            <div class="form-options" *ngIf="!isSignupMode">
+                <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="userData.rememberMe" name="rememberMe">
+                    <span class="checkmark"></span>
+                    Remember me
+                </label>
+            </div>
+
+            <!-- Error Message -->
+        <div *ngIf="errorMessage" class="error-message">
+            <span class="error-icon">⚠️</span>
+            {{ errorMessage }}
+        </div>
+
+            <!-- Submit Button -->
+            <button 
+                type="submit" 
+                class="login-btn primary-btn btn-primary"
+                [disabled]="isFormInvalid() || loading">
+                <span class="btn-icon">{{ isSignupMode ? '🚀' : '🔑' }}</span>
+                {{ loading ? (isSignupMode ? 'Creating Account...' : 'Signing In...') : (isSignupMode ? 'Create Account' : 'Sign In') }}
+                <span *ngIf="loading" class="loading-spinner"></span>
+            </button>
+        </form>
+
+        <!-- App Features -->
+        <!-- <div class="features-section">
+            <h3>Track & Split Expenses Easily</h3>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">👥</span>
+                    <span>Create Groups</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">💰</span>
+                    <span>Add Expenses</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <span>View Reports</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <span>Real-time Sync</span>
+                </div>
+            </div>
+        </div> -->
+    </div>
+</div>

@@ -1,0 +1,363 @@
+<div class="app-container">
+    <!-- Create/Edit Group Form -->
+    <div class="full-screen-overlay" *ngIf="showCreateForm">
+        <div class="create-group-page">
+            <div class="create-group-header">
+                <button class="back-button" (click)="resetForm()">←</button>
+                <h3>{{ isEditingGroup ? 'Edit Group' : 'Create New Group' }}</h3>
+            </div>
+
+            <div class="create-group-form">
+                <div class="form-group">
+                    <label class="section-label">
+                        <span class="label-icon">🏷️</span>
+                        Title
+                    </label>
+                    <input 
+                        type="text" 
+                        [(ngModel)]="newGroup.name" 
+                        placeholder="Enter group title"
+                        class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="section-label">
+                        <span class="label-icon">💵</span>
+                        Currency
+                    </label>
+                    <select 
+                        [(ngModel)]="newGroup.currency" 
+                        class="form-select">
+                        <option value="INR">🇮🇳 INR - Indian Rupee</option>
+                        <option value="USD">🇺🇸 USD - US Dollar</option>
+                        <option value="EUR">🇪🇺 EUR - Euro</option>
+                        <option value="GBP">🇬🇧 GBP - British Pound</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="section-label">
+                        <span class="label-icon">📝</span>
+                        Description
+                    </label>
+                    <textarea 
+                        [(ngModel)]="newGroup.description" 
+                        placeholder="Enter group description"
+                        rows="3"
+                        class="form-textarea"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="section-label">
+                        <span class="label-icon">👥</span>
+                        Participants
+                    </label>
+                    
+                    <div class="participants-list">
+                        <div *ngFor="let participant of newGroup.participants" class="participant-item">
+                            <span class="participant-name">
+                                <span class="participant-icon">👤</span>
+                                {{ participant }}
+                            </span>
+                            <button 
+                                type="button" 
+                                class="remove-participant-btn"
+                                (click)="removeParticipant(participant)">
+                                <span class="btn-icon">🗑️</span>
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="add-participant-section">
+                        <input 
+                            type="text" 
+                            [(ngModel)]="newParticipantName" 
+                            (keypress)="onParticipantKeyPress($event)"
+                            placeholder="Enter participant name"
+                            class="participant-input">
+                         <button 
+                        class="create-btn" 
+                        (click)="addParticipant()"
+                        [disabled]="!newParticipantName.trim()">
+                            Add
+                    </button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button 
+                        class="create-btn" 
+                        (click)="isEditingGroup ? updateGroup() : createGroup()"
+                        [disabled]="!newGroup.name.trim() || newGroup.participants.length === 0">
+                        <span class="btn-icon">{{ isEditingGroup ? '✏️' : '📁' }}</span>
+                        {{ isEditingGroup ? 'Update Group' : 'Create Group' }}
+                    </button>
+                    <button class="cancel-btn" (click)="resetForm()">
+                        <span class="btn-icon">❌</span>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content" *ngIf="!showCreateForm">
+        <!-- Groups List -->
+        <section class="groups-section" *ngIf="!showExpenseForm && !selectedGroup">
+            <div class="section-header">
+                <h2 class="section-title">Your Groups</h2>
+                <button class="btn btn-primary" (click)="showCreateForm = true">
+                    <span class="btn-icon">➕</span>
+                    New Group
+                </button>
+            </div>
+            
+            <div class="groups-list">
+                <div *ngFor="let group of groups" 
+                     class="group-card" 
+                     [class.active]="isGroupSelected(group)"
+                     (click)="selectGroup(group)">
+                    <div class="group-card-header">
+                        <div class="group-info">
+                            <h3 class="group-name">{{ group.name }}</h3>
+                            <span class="group-currency">{{ group.currency }}</span>
+                        </div>
+                        <div class="group-arrow">›</div>
+                    </div>
+                    
+                    <div class="group-details">
+                        <div class="group-detail">
+                            <span class="detail-icon">📅</span>
+                            {{ group.createdAt | date:'MMM d, y' }}
+                        </div>
+                        <div class="group-detail">
+                            <span class="detail-icon">👤</span>
+                            {{ group.participants.length }} participants
+                        </div>
+                    </div>
+                    
+                    <div class="group-actions">
+                        <button class="icon-btn edit-btn" (click)="editGroup(group); $event.stopPropagation()" title="Edit group">
+                            ✏️
+                        </button>
+                        <button class="icon-btn delete-btn" (click)="deleteGroup(group.id); $event.stopPropagation()" title="Delete group">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+
+                <div *ngIf="groups.length === 0" class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h3>No Groups Yet</h3>
+                    <p>Create your first group to start tracking expenses</p>
+                    <button class="btn btn-primary" (click)="showCreateForm = true">
+                        <span class="btn-icon">📁</span>
+                        Create Your First Group
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Selected Group Expenses -->
+        <section class="expenses-section" *ngIf="selectedGroup && !showExpenseForm">
+            <div class="expenses-header">
+                <div class="header-content">
+                    <button class="back-to-groups" (click)="selectedGroup = null">
+                        <span class="btn-icon">←</span>
+                        Back to Groups
+                    </button>
+                    <div class="total-expenses-section">
+                        <div class="total-label">Total Expenses</div>
+                        <div class="total-amount">{{ formatCurrency(getTotalExpenses()) }}</div>
+                    </div>
+                </div>
+                
+                <div class="expenses-actions">
+                    <button class="btn btn-outline" (click)="viewReport()">
+                        <span class="btn-icon">📊</span>
+                        Report
+                    </button>
+                    <button class="btn btn-primary" (click)="showExpenseForm = true">
+                        <span class="btn-icon">➕</span>
+                        Add Expense
+                    </button>
+                </div>
+            </div>
+
+            <div class="expenses-list">
+                <div *ngFor="let expense of expenses" class="expense-card">
+                    <div class="expense-main">
+                        <div class="expense-content">
+                            <div class="expense-header">
+                                <h4 class="expense-title">{{ expense.title }}</h4>
+                                <div class="expense-amount">{{ formatCurrency(expense.amount) }}</div>
+                            </div>
+                            
+                            <div class="expense-details">
+                                <div class="expense-detail">
+                                    <span class="detail-icon">👤</span>
+                                    Paid by {{ expense.paidBy }}
+                                </div>
+                                <div class="expense-detail">
+                                    <span class="detail-icon">👥</span>
+                                    Split among {{ expense.participants.length }} people
+                                </div>
+                                <div class="expense-detail" *ngIf="expense.category && expense.category !== 'General'">
+                                    <span class="detail-icon">🏷️</span>
+                                    {{ expense.category }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="expense-actions">
+                        <button class="icon-btn edit-btn" (click)="editExpense(expense)" title="Edit expense">
+                            ✏️
+                        </button>
+                        <button class="icon-btn delete-btn" (click)="deleteExpense(expense.id)" title="Delete expense">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+
+                <div *ngIf="expenses.length === 0" class="empty-expenses">
+                    <div class="empty-icon">💰</div>
+                    <h4>No Expenses Yet</h4>
+                    <p>Add your first expense to start tracking</p>
+                    <button class="btn btn-primary" (click)="showExpenseForm = true">
+                        <span class="btn-icon">➕</span>
+                        Add Your First Expense
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add/Edit Expense Form -->
+        <div class="full-screen-overlay" *ngIf="showExpenseForm">
+            <div class="create-group-page">
+                <div class="create-group-header">
+                    <button class="back-button" (click)="resetExpenseForm()">←</button>
+                    <h3>{{ isEditingExpense ? 'Edit Expense' : 'Add Expense' }}</h3>
+                </div>
+
+                <div class="create-group-form">
+                    <div class="form-group">
+                        <label class="section-label">
+                            <span class="label-icon">💰</span>
+                            What?
+                        </label>
+                        <input 
+                            type="text" 
+                            [(ngModel)]="newExpense.title" 
+                            placeholder="Enter expense title"
+                            class="form-input large">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="section-label">
+                            <span class="label-icon">👤</span>
+                            Who paid?
+                        </label>
+                        <select 
+                            [(ngModel)]="newExpense.paidBy" 
+                            class="form-select">
+                            <option value="">Select who paid</option>
+                            <option *ngFor="let participant of selectedGroup?.participants" [value]="participant">
+                                {{ participant }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="section-label">
+                            <span class="label-icon">💵</span>
+                            How much?
+                        </label>
+                        <div class="amount-input-container">
+                            <input 
+                                type="number" 
+                                [(ngModel)]="newExpense.amount" 
+                                placeholder="0.00"
+                                step="0.01"
+                                class="amount-input">
+                            <span class="currency-display">{{ selectedGroup?.currency || 'INR' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="section-label">
+                            <span class="label-icon">📂</span>
+                            Category
+                        </label>
+                        <select 
+                            [(ngModel)]="newExpense.category" 
+                            class="form-select">
+                            <option value="Food">🍕 Food</option>
+                            <option value="Travel">✈️ Travel</option>
+                            <option value="Shopping">🛍️ Shopping</option>
+                            <option value="Entertainment">🎬 Entertainment</option>
+                            <option value="General">📦 General</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="section-label">
+                            <span class="label-icon">👥</span>
+                            Split Among
+                        </label>
+                        
+                        <div class="select-all-section" *ngIf="selectedGroup">
+                            <button class="select-all-btn" (click)="selectAllExpenseParticipants()">
+                                <span class="btn-icon">✅</span>
+                                Select All
+                            </button>
+                        </div>
+
+                        <div class="participants-checkbox-list" *ngIf="selectedGroup">
+                            <div *ngFor="let participant of selectedGroup.participants" 
+                                class="participant-checkbox-item">
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        [checked]="isExpenseParticipantSelected(participant)"
+                                        (change)="toggleExpenseParticipant(participant)">
+                                    <span class="checkmark"></span>
+                                    <div class="participant-info">
+                                        <span class="participant-name">
+                                            <span class="participant-icon">👤</span>
+                                            {{ participant }}
+                                        </span>
+                                        <span class="participant-amount" *ngIf="newExpense.participants.length > 0">
+                                            {{ formatCurrency(getAmountPerPerson()) }}
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button 
+                            class="create-btn" 
+                            (click)="isEditingExpense ? updateExpense() : addExpense()"
+                            [disabled]="!newExpense.title.trim() || newExpense.amount <= 0 || !newExpense.paidBy || newExpense.participants.length === 0">
+                            <span class="btn-icon">💾</span>
+                            {{ isEditingExpense ? 'Update Expense' : 'Save Expense' }}
+                        </button>
+                        <button class="cancel-btn" (click)="resetExpenseForm()">
+                            <span class="btn-icon">❌</span>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<button class="btn btn-primary center-button" (click)="logout()" title="Logout">
+  <i class="fas fa-sign-out-alt"></i>
+  Logout
+</button>

@@ -1,0 +1,236 @@
+<div class="member-view-container">
+  <!-- Header Section -->
+  <div class="report-header" *ngIf="currentGroup">
+    <div class="header-nav">
+      <button class="nav-button refresh-btn" (click)="refreshData()" title="Refresh data">
+        <span class="btn-icon">🔄</span>
+        Refresh
+      </button>
+    </div>
+    
+    <div class="group-info">
+      <div class="group-avatar">
+        <span class="avatar-icon">👥</span>
+      </div>
+      <div class="group-details">
+        <h1 class="group-name">{{ currentGroup.name }}</h1>
+        <p class="group-meta">{{ currentGroup.participants.length }} participants • {{ currentGroup.currency }}</p>
+        <div class="member-badge">
+          <span class="badge-icon">🔗</span>
+          Public Member View
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="summary-icon">💰</div>
+        <div class="summary-info">
+          <div class="summary-label">Total Expenses</div>
+          <div class="summary-amount">{{ formatCurrency(totalExpenses) }}</div>
+        </div>
+      </div>
+      
+      <div class="summary-card info-card">
+        <div class="summary-icon">ℹ️</div>
+        <div class="summary-info">
+          <div class="summary-label">View Only</div>
+          <div class="balance-status">Login to interact</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Group Selected -->
+  <div *ngIf="!currentGroup" class="empty-state">
+    <div class="empty-content">
+      <div class="empty-icon">📊</div>
+      <h2>Group Not Found</h2>
+      <p>The group you're looking for doesn't exist or the link is invalid</p>
+      <button class="action-btn primary" (click)="goBackToGroups()">
+        <span class="btn-icon">🏠</span>
+        Go to Login
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="member-content" *ngIf="currentGroup">
+    
+    <!-- Quick Settlement -->
+    <section class="settlement-section" *ngIf="userSettlements.length > 0">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="title-icon">💸</span>
+          Settlement Plan
+        </h2>
+        <div class="section-subtitle">Minimum transactions to settle all debts</div>
+      </div>
+
+      <div class="settlement-cards">
+        <div *ngFor="let settlement of userSettlements; let i = index" class="settlement-card">
+          <div class="settlement-header">
+            <div class="step-badge">{{ i + 1 }}</div>
+            <div class="settlement-amount">{{ formatCurrency(settlement.amount) }}</div>
+          </div>
+          
+          <div class="settlement-flow">
+            <div class="from-person">
+              <span class="person-avatar">👤</span>
+              <span class="person-name">{{ settlement.from }}</span>
+            </div>
+            
+            <div class="transfer-arrow">
+              <div class="arrow-line"></div>
+              <div class="arrow-head">→</div>
+              <div class="transfer-label">pays</div>
+            </div>
+            
+            <div class="to-person">
+              <span class="person-avatar">👤</span>
+              <span class="person-name">{{ settlement.to }}</span>
+            </div>
+          </div>
+
+          <div class="settlement-note">
+            <span class="note-icon">ℹ️</span>
+            Login to mark as paid
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transaction History -->
+    <section class="transactions-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="title-icon">📝</span>
+          Transaction History
+        </h2>
+        <div class="section-subtitle">All expenses in this group</div>
+      </div>
+
+      <div class="transactions-list">
+        <div *ngFor="let expense of userTransactions" class="transaction-card">
+          
+          <div class="transaction-header">
+            <div class="transaction-info">
+              <h3 class="transaction-title">{{ expense.description }}</h3>
+              <div class="transaction-meta">
+                <span class="meta-item">
+                  <span class="meta-icon">👤</span>
+                  {{ expense.paidBy }}
+                </span>
+                <span class="meta-item">
+                  <span class="meta-icon">📅</span>
+                  {{ formatDate(expense.date) }}
+                </span>
+                <span class="meta-item" *ngIf="expense.category">
+                  <span class="meta-icon">🏷️</span>
+                  {{ expense.category }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="transaction-amount">
+              {{ formatCurrency(expense.amount) }}
+            </div>
+          </div>
+
+          <div class="transaction-details">
+            <div class="participants-list">
+              <span class="participants-label">Split between:</span>
+              <div class="participants-tags">
+                <span *ngFor="let participant of expense.participants" 
+                      class="participant-tag">
+                  {{ participant }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="user-share">
+              <div class="share-info">
+                <span class="share-label">Each person's share: </span>
+                <span class="share-amount">
+                  {{ formatCurrency(getUserShare(expense)) }}
+                </span>
+              </div>
+              <div class="share-status">
+                <span class="status-badge" [class.pending]="!expense.settled" [class.settled]="expense.settled">
+                  {{ expense.settled ? '✅ Settled' : '⏳ Pending' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="transaction-note" *ngIf="expense.paidBy !== currentUserName && !expense.settled">
+            <span class="note-icon">🔒</span>
+            Login to mark as settled
+          </div>
+        </div>
+      </div>
+
+      <!-- No Transactions -->
+      <div *ngIf="userTransactions.length === 0" class="empty-state small">
+        <div class="empty-content">
+          <div class="empty-icon">💸</div>
+          <h3>No Transactions Yet</h3>
+          <p>When expenses are added, they'll appear here</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Group Balances Overview -->
+    <section class="balances-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="title-icon">⚖️</span>
+          Group Balances
+        </h2>
+        <div class="section-subtitle">Current standing of all participants</div>
+      </div>
+
+      <div class="balances-list">
+        <div *ngFor="let participant of currentGroup.participants" 
+             class="balance-item"
+             [class.positive]="(balances.get(participant) || 0) > 0"
+             [class.negative]="(balances.get(participant) || 0) < 0">
+          
+          <div class="participant-info">
+            <div class="participant-avatar">
+              <span class="avatar-icon">👤</span>
+            </div>
+            <div class="participant-details">
+              <h4 class="participant-name">
+                {{ participant }}
+              </h4>
+              <div class="participant-stats">
+                <span class="stat paid">Paid: {{ formatCurrency(getParticipantPaid(participant)) }}</span>
+                <span class="stat charged">Owed: {{ formatCurrency(getParticipantCharged(participant)) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="balance-amount"
+               [class.positive]="(balances.get(participant) || 0) > 0"
+               [class.negative]="(balances.get(participant) || 0) < 0">
+            {{ formatCurrency(balances.get(participant) || 0) }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Login Prompt -->
+    <section class="login-prompt" *ngIf="currentGroup">
+      <div class="prompt-content">
+        <div class="prompt-icon">🔐</div>
+        <h3>Want to interact with this group?</h3>
+        <p>Login to add expenses, mark settlements, and manage the group</p>
+        <button class="action-btn primary" (click)="goBackToGroups()">
+          <span class="btn-icon">🚪</span>
+          Login Now
+        </button>
+      </div>
+    </section>
+  </div>
+</div>

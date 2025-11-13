@@ -1,0 +1,73 @@
+<!-- complete-profile.component.html -->
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <h1>Complete Your Profile</h1>
+            <p>Please provide your details to continue</p>
+        </div>
+
+        <form class="profile-form" (ngSubmit)="onSubmit()">
+            <div class="form-section">
+                <label class="input-label">
+                    <span class="label-icon">👤</span>
+                    Full Name
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        [(ngModel)]="userData.name" 
+                        name="name"
+                        placeholder="Enter your full name"
+                        class="modern-input"
+                        required>
+                    <div class="input-icon">👤</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label class="input-label">
+                    <span class="label-icon">📱</span>
+                    Mobile Number
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="tel" 
+                        [(ngModel)]="userData.mobile" 
+                        name="mobile"
+                        placeholder="Enter your 10-digit mobile number"
+                        class="modern-input"
+                        pattern="[0-9]{10}"
+                        maxlength="10"
+                        required>
+                    <div class="input-icon">📱</div>
+                </div>
+                <div class="password-hint">
+                    Must be 10 digits
+                </div>
+            </div>
+
+            <div *ngIf="errorMessage" class="error-message">
+                <span class="error-icon">⚠️</span>
+                {{ errorMessage }}
+            </div>
+
+            <div class="form-actions">
+                <button 
+                    type="submit" 
+                    class="primary-btn btn-primary"
+                    [disabled]="!isValidForm() || loading">
+                    <span class="btn-icon">✅</span>
+                    {{ loading ? 'Updating...' : 'Complete Profile' }}
+                </button>
+                
+                <button 
+                    type="button" 
+                    class="secondary-btn"
+                    (click)="skipForNow()"
+                    [disabled]="loading">
+                    Skip for Now
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
