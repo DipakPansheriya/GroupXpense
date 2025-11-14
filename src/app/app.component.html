@@ -1,1 +1,25 @@
-<router-outlet></router-outlet>
+  <div class="app-container">
+      <!-- Sync Status Indicator -->
+      
+      
+      <!-- Offline Indicator -->
+      <div *ngIf="!isOnline" class="offline-indicator">
+        <span class="money-icon">💸</span>
+        Offline - Using local data
+      </div>
+      
+      <!-- Global Loading Overlay during Sync -->
+      <div *ngIf="syncInProgress" class="loading-overlay">
+        <div class="overlay-content">
+          <div class="money-spinner">💰</div>
+          <h3>Syncing Your Expenses</h3>
+          <p>Please wait while we update your data...</p>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="syncProgress"></div>
+          </div>
+          <div class="progress-text">{{ syncProgress.toFixed(0) }}%</div>
+        </div>
+      </div>
+      
+      <router-outlet></router-outlet>
+    </div>

@@ -1,3 +1,4 @@
+// complete-profile.component.ts
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { User, AuthService } from '../auth.service';
@@ -8,7 +9,7 @@ import { User, AuthService } from '../auth.service';
   styleUrls: ['./complete-profile.component.scss']
 })
 export class CompleteProfileComponent {
-userData = {
+  userData = {
     name: '',
     mobile: ''
   };
@@ -53,7 +54,8 @@ userData = {
     return mobileRegex.test(mobile);
   }
 
-  onSubmit(): void {
+  // FIXED: Make this method async and properly handle the Promise
+  async onSubmit(): Promise<void> {
     if (!this.isValidForm()) {
       this.errorMessage = 'Please enter valid name and 10-digit mobile number';
       return;
@@ -67,19 +69,25 @@ userData = {
     this.loading = true;
     this.errorMessage = '';
 
-    // Update user profile
-    const success = this.authService.completeUserProfile(this.currentUser.id, {
-      name: this.userData.name.trim(),
-      mobile: this.userData.mobile.trim()
-    });
+    try {
+      // Update user profile - now properly awaiting the Promise
+      const success = await this.authService.completeUserProfile(this.currentUser.id, {
+        name: this.userData.name.trim(),
+        mobile: this.userData.mobile.trim()
+      });
 
-    if (success) {
-      this.router.navigate(['/groups']);
-    } else {
-      this.errorMessage = 'Failed to update profile. Please try again.';
+      // FIXED: Now this condition works correctly with await
+      if (success) {
+        this.router.navigate(['/groups']);
+      } else {
+        this.errorMessage = 'Failed to update profile. Please try again.';
+      }
+    } catch (error) {
+      this.errorMessage = 'An error occurred while updating profile. Please try again.';
+      console.error('Profile update error:', error);
+    } finally {
+      this.loading = false;
     }
-
-    this.loading = false;
   }
 
   skipForNow(): void {

@@ -11,6 +11,8 @@ import { LoginComponent } from './login/login.component';
 import { CompleteProfileComponent } from './complete-profile/complete-profile.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { MemberViewComponent } from './member-view/member-view.component';
+import { AuthService } from './auth.service';
+import { SyncService } from './sync.service';
 
 @NgModule({
   declarations: [
@@ -30,10 +32,12 @@ import { MemberViewComponent } from './member-view/member-view.component';
       // Register the ServiceWorker as soon as the application is stable
       // or after 30 seconds (whichever comes first).
       registrationStrategy: 'registerWhenStable:30000'
-    })
+    }),
   ],
   providers: [
-    ExpenseService
+    ExpenseService,
+    AuthService,
+    SyncService
   ],
   bootstrap: [AppComponent]
 })

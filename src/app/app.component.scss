@@ -1,170 +1,223 @@
-// app.component.scss
-.app-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-nav {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 0 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 60px;
-  color: white;
-
-  .nav-brand {
-    h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 700;
-      color: white;
-      transition: opacity 0.3s ease;
-
-      &:hover {
-        opacity: 0.8;
-      }
+ .app-container {
+      position: relative;
     }
-  }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-
-    .nav-link {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    /* Sync Indicator */
+    .sync-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #28a745;
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 25px;
       font-size: 14px;
-      font-weight: 600;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 2px solid #1e7e34;
+      min-width: 180px;
       transition: all 0.3s ease;
+    }
+    
+    .sync-indicator.syncing {
+      background: #ffc107;
+      color: #000;
+      border-color: #e0a800;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    /* Money Loader */
+    .money-loader {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      backdrop-filter: blur(10px);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.25);
-        transform: translateY(-1px);
-      }
-
-      &.active {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.4);
-      }
-
-      &:active {
-        transform: scale(0.95);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        
-        &:hover {
-          transform: none;
-          background: rgba(255, 255, 255, 0.15);
-        }
-      }
-    }
-
-    .logout-btn {
-      background: rgba(231, 76, 60, 0.2);
-      border-color: rgba(231, 76, 60, 0.3);
-
-      &:hover {
-        background: rgba(231, 76, 60, 0.3);
-      }
-    }
-
-    .login-btn {
-      background: rgba(46, 204, 113, 0.2);
-      border-color: rgba(46, 204, 113, 0.3);
-
-      &:hover {
-        background: rgba(46, 204, 113, 0.3);
-      }
-    }
-
-    .nav-user {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: 20px;
-
-      .user-welcome {
-        font-size: 14px;
-        opacity: 0.9;
-      }
-    }
-  }
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  
-  // Full height for public routes
-  &.public-route {
-    min-height: 100vh;
-  }
-}
-
-// Public route specific styles
-.public-route {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-// Responsive design
-@media (max-width: 768px) {
-  .app-nav {
-    padding: 0 12px;
-    height: 50px;
-
-    .nav-brand h2 {
-      font-size: 18px;
-    }
-
-    .nav-links {
       gap: 8px;
-
-      .nav-link {
-        padding: 6px 12px;
-        font-size: 12px;
+    }
+    
+    .money-icon {
+      font-size: 20px;
+      animation: bounce 1s infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .loading-text {
+      font-weight: 600;
+      font-size: 12px;
+    }
+    
+    .loading-dots {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: dotPulse 1.4s ease-in-out infinite both;
+    }
+    
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    .dot:nth-child(3) { animation-delay: 0s; }
+    
+    @keyframes dotPulse {
+      0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
       }
-
-      .nav-user {
-        margin-left: 10px;
-        gap: 8px;
-
-        .user-welcome {
-          font-size: 12px;
-        }
+      40% {
+        transform: scale(1.2);
+        opacity: 1;
       }
     }
-  }
-}
-
-@media (max-width: 480px) {
-  .app-nav {
-    flex-direction: column;
-    height: auto;
-    padding: 10px;
-
-    .nav-brand {
-      margin-bottom: 8px;
+    
+    // /* Sync Status */
+    // .sync-status {
+    //   display: flex;
+    //   align-items: center;
+    //   gap: 8px;
+    //   font-weight: 600;
+    // }
+    
+    // .status-success .money-icon {
+    //   animation: sparkle 2s infinite;
+    // }
+    
+    // @keyframes sparkle {
+    //   0%, 100% { transform: rotate(0deg); }
+    //   25% { transform: rotate(10deg); }
+    //   75% { transform: rotate(-10deg); }
+    // }
+    
+    // .status-waiting .money-icon {
+    //   opacity: 0.7;
+    // }
+    
+    /* Offline Indicator */
+    .offline-indicator {
+      margin: 20px;
+      top: 10px;
+      left: 10px;
+      background: #dc3545;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 25px;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 2px solid #c82333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
     }
-
-    .nav-links {
+    
+    .offline-indicator .money-icon {
+      font-size: 18px;
+      animation: shake 0.5s ease-in-out infinite;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+    }
+    
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      justify-content: space-between;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(5px);
     }
-  }
-}
+    
+    .overlay-content {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      min-width: 300px;
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .money-spinner {
+      font-size: 48px;
+      margin-bottom: 15px;
+      animation: moneySpin 2s linear infinite;
+    }
+    
+    @keyframes moneySpin {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+    
+    .overlay-content h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 20px;
+    }
+    
+    .overlay-content p {
+      margin: 0 0 20px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #20c997);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      animation: progressPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes progressPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .progress-text {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+    }

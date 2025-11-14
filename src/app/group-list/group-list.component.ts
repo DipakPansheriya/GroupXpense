@@ -123,8 +123,8 @@ export class GroupListComponent {
             createdAt: new Date()
           } as Group;
           
-          const savedGroup = this.expenseService.saveGroup(groupToSave);
-          this.selectGroup(savedGroup);
+          const savedGroup:any = this.expenseService.saveGroup(groupToSave);
+          // this.selectGroup(savedGroup);
           this.resetForm();
           
           // No need to manually load groups - subscription will handle it
@@ -133,7 +133,7 @@ export class GroupListComponent {
           alert('Error creating group. Please try again.');
         }
       }
-    }
+    } 
   
     updateGroup(): void {
       if (this.newGroup.name.trim() && this.newGroup.participants.length > 0 && this.editingGroupId) {
