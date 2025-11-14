@@ -112,10 +112,9 @@
 
       <div class="transactions-list">
         <div *ngFor="let expense of userTransactions" class="transaction-card">
-          
           <div class="transaction-header">
             <div class="transaction-info">
-              <h3 class="transaction-title">{{ expense.description }}</h3>
+              <h3 class="transaction-title">{{ expense.title }}</h3>
               <div class="transaction-meta">
                 <span class="meta-item">
                   <span class="meta-icon">👤</span>

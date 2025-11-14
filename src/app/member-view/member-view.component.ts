@@ -4,6 +4,7 @@ import { Group } from '../models/group.model';
 import { Expense } from '../models/expense.model';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MemberViewService } from '../member-view.service';
+import { SyncService } from '../sync.service';
 
 @Component({
   selector: 'app-member-view',
@@ -28,7 +29,8 @@ export class MemberViewComponent implements OnInit {
   constructor(
     private memberViewService: MemberViewService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private syncService: SyncService
   ) {}
 
   ngOnInit(): void {
@@ -283,9 +285,11 @@ export class MemberViewComponent implements OnInit {
   goToLogin(): void {
     this.router.navigate(['/login']);
   }
-
-  refreshData(): void {
+  async refreshData(): Promise<void> {
     if (this.userId && this.groupId) {
+      // Trigger sync first
+      await this.syncService.triggerSync('manual_refresh');
+      // Then reload the data
       this.loadMemberViewData(this.userId, this.groupId);
     }
   }

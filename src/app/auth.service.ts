@@ -415,7 +415,7 @@ export class AuthService {
     return localStorage.getItem(this.SYNC_STATUS_KEY) || 'synced';
   }
 
-  // Logout method
+  // Logout method - COMPLETELY CLEARS ALL DATA
   logout(): void {
     // FIREBASE SYNC: Sign out from Firebase if online
     if (this.isOnline()) {
@@ -424,7 +424,7 @@ export class AuthService {
       });
     }
     
-    // Clear local storage
+    // COMPLETELY CLEAR ALL AUTH DATA from localStorage
     localStorage.removeItem(this.AUTH_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
@@ -432,6 +432,7 @@ export class AuthService {
     // Clear any sync-related data
     this.setSyncStatus('synced');
     
+    // Navigate to login page
     this.router.navigate(['/login']);
   }
 
@@ -465,7 +466,6 @@ export class AuthService {
     }
   }
 
-  // ALL YOUR EXISTING METHODS REMAIN THE SAME BELOW THIS LINE
   // Check if user profile is complete
   isProfileComplete(user: User): boolean {
     return !!user.name && !!user.mobile && user.profileCompleted === true;

@@ -12,11 +12,11 @@ export class AuthGuard implements CanActivate {
 
   canActivate(route: ActivatedRouteSnapshot): boolean {
     if (this.authService.isAuthenticated()) {
-      return true; // Allow access
+      return true; // Allow access to protected routes
     } else {
       // Redirect to login page with return URL
-      const returnUrl = route.url.map(segment => segment.path).join('/');
-      this.router.navigate(['/login'], { queryParams: { returnUrl: returnUrl || 'groups' } });
+      const returnUrl = route.url.map(segment => segment.path).join('/') || 'groups';
+      this.router.navigate(['/login'], { queryParams: { returnUrl } });
       return false; // Block access
     }
   }

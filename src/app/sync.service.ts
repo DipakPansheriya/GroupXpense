@@ -11,8 +11,9 @@ import { ExpenseService } from './expense.service';
 export class SyncService {
   private isInitialized = false;
   private lastSyncTime: Date | null = null;
-  private readonly SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
   private syncInProgress = false;
+  private wasOffline = false;
+  private syncDebounceTimer: any;
 
   // Use injector to break circular dependency
   private injector = inject(Injector);
@@ -24,6 +25,9 @@ export class SyncService {
   }
 
   constructor(private router: Router) {
+    // Initialize offline status
+    this.wasOffline = !navigator.onLine;
+    
     // Delay initialization to ensure services are ready
     setTimeout(() => {
       this.initializeSync();
@@ -39,17 +43,27 @@ export class SyncService {
     // Sync on route changes
     this.setupRouteSync();
     
-    // Sync on network status changes
+    // Sync on network status changes (only when coming back online)
     this.setupNetworkSync();
     
-    // Sync on app visibility changes
-    this.setupVisibilitySync();
-    
-    // Periodic sync
-    this.setupPeriodicSync();
+    // Sync on data changes
+    this.setupDataChangeSync();
 
     this.isInitialized = true;
-    console.log('SyncService initialized');
+  }
+
+  /**
+   * Sync when data changes (add, update, delete)
+   */
+  private setupDataChangeSync(): void {
+    // Listen to expense service changes
+    this.expenseService.expenses$.subscribe(() => {
+      this.debouncedSync('data_change');
+    });
+
+    this.expenseService.groups$.subscribe(() => {
+      this.debouncedSync('data_change');
+    });
   }
 
   /**
@@ -61,64 +75,55 @@ export class SyncService {
         filter((event: Event): event is NavigationEnd => event instanceof NavigationEnd)
       )
       .subscribe(async (event: NavigationEnd) => {
-        console.log('Navigation detected, checking sync...', event.url);
         await this.triggerSync('route_change');
       });
   }
 
   /**
-   * Sync when network status changes
+   * Sync when network comes back online (after being offline)
    */
   private setupNetworkSync(): void {
     window.addEventListener('online', async () => {
-      console.log('Network online, triggering sync...');
-      await this.triggerSync('network_online');
+      // Only trigger if we were previously offline and have pending changes
+      if (this.wasOffline && this.hasPendingChanges()) {
+        await this.triggerSync('network_online');
+      }
+      this.wasOffline = false;
     });
 
     window.addEventListener('offline', () => {
-      console.log('Network offline');
+      this.wasOffline = true;
     });
   }
 
   /**
-   * Sync when app becomes visible
+   * Debounced sync to avoid multiple rapid syncs
    */
-  private setupVisibilitySync(): void {
-    document.addEventListener('visibilitychange', async () => {
-      if (!document.hidden) {
-        console.log('App became visible, checking sync...');
-        await this.triggerSync('visibility_change');
-      }
-    });
-  }
+  private debouncedSync(source: string): void {
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+    }
 
-  /**
-   * Periodic sync (every 5 minutes when app is active)
-   */
-  private setupPeriodicSync(): void {
-    setInterval(async () => {
-      if (this.authService.isOnline() && this.authService.isAuthenticated() && !this.syncInProgress) {
-        console.log('Periodic sync check...');
-        await this.triggerSync('periodic');
+    this.syncDebounceTimer = setTimeout(() => {
+      if (this.authService.isOnline() && this.authService.isAuthenticated()) {
+        this.triggerSync(source);
       }
-    }, this.SYNC_INTERVAL);
+    }, 1000); // 1 second debounce
   }
 
   /**
    * Main sync trigger method
    */
   async triggerSync(source: string = 'manual'): Promise<void> {
-    console.log(`Sync triggered by: ${source}`);
-
+    console.log(`Syncing Your Expenses - Trigger: ${source}`);
+    
     // Prevent multiple simultaneous syncs
     if (this.syncInProgress) {
-      console.log('Sync already in progress, skipping...');
       return;
     }
 
     // Check if sync is needed
     if (!this.shouldSync()) {
-      console.log('Sync not needed at this time');
       return;
     }
 
@@ -129,17 +134,11 @@ export class SyncService {
       this.lastSyncTime = new Date();
 
       if (this.authService.isOnline() && this.authService.isAuthenticated()) {
-        console.log('Starting data synchronization...');
-        
-        // Load fresh data from Firebase
+        // Load fresh data from Firebase first
         await this.expenseService.loadDataFromFirebase();
         
         // Sync any local changes to Firebase
         await this.expenseService.syncLocalDataToFirebase();
-        
-        console.log('Data synchronization completed');
-      } else {
-        console.log('Cannot sync - user offline or not authenticated');
       }
     } catch (error) {
       console.error('Error during synchronization:', error);
@@ -162,21 +161,18 @@ export class SyncService {
       return false;
     }
 
-    // Sync if never synced before
-    if (!this.lastSyncTime) {
+    // Always sync when coming online from offline with pending changes
+    if (this.wasOffline && this.hasPendingChanges()) {
       return true;
     }
 
-    // Sync if last sync was more than SYNC_INTERVAL ago
-    const timeSinceLastSync = Date.now() - this.lastSyncTime.getTime();
-    return timeSinceLastSync > this.SYNC_INTERVAL;
+    return true; // Always sync for data changes and navigation
   }
 
   /**
    * Force sync regardless of conditions
    */
   async forceSync(): Promise<void> {
-    console.log('Force syncing data...');
     this.lastSyncTime = null;
     await this.triggerSync('force');
   }
@@ -208,14 +204,16 @@ export class SyncService {
       await this.forceSync();
       return { success: true, message: 'Sync completed successfully' };
     } catch (error) {
-      return { success: false, message: 'Sync failed: ' + error };
+      return { success: false, message: 'Sync failed' };
     }
   }
 
   /**
-   * Initialize sync service - call this in app component
+   * Check if there are pending changes that need sync
    */
-  initialize(): void {
-    console.log('SyncService initialized successfully');
+  hasPendingChanges(): boolean {
+    // Implement logic to check if there are unsynced changes
+    // For now, return true if we were offline (simplified)
+    return this.wasOffline;
   }
 }

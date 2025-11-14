@@ -8,7 +8,7 @@ import { MemberViewComponent } from './member-view/member-view.component';
 import { AuthGuard } from './auth.guard';
 
 const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' }, 
+  { path: '', redirectTo: 'groups', pathMatch: 'full' }, 
   { path: 'login', component: LoginComponent },
   
   // Protected routes - require login
@@ -19,7 +19,7 @@ const routes: Routes = [
   // Public route - no login required (pass userId and groupId)
   { path: 'member-view/:userId/:groupId', component: MemberViewComponent }, 
   
-  { path: '**', redirectTo: 'login' }
+  { path: '**', redirectTo: 'groups' } // Redirect to groups for all unknown routes
 ];
 
 @NgModule({
