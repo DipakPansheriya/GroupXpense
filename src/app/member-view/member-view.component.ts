@@ -1,130 +1,208 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ExpenseService } from '../expense.service';
+// member-view.component.ts
+import { Component, OnInit } from '@angular/core';
 import { Group } from '../models/group.model';
 import { Expense } from '../models/expense.model';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { MemberViewService } from '../member-view.service';
 
 @Component({
   selector: 'app-member-view',
   templateUrl: './member-view.component.html',
-  styleUrls: ['./member-view.component.scss']
+  styleUrls: ['./member-view.component.scss'],
 })
-export class MemberViewComponent implements OnInit, OnDestroy {
+export class MemberViewComponent implements OnInit {
   currentGroup: Group | null = null;
-  currentUserName: string = 'Guest User'; // Default name for non-logged in users
+  currentUserName: string = 'Guest User';
   balances: Map<string, number> = new Map();
-  userBalance: number = 0;
-  userSettlements: { from: string, to: string, amount: number }[] = [];
+  userSettlements: { from: string; to: string; amount: number }[] = [];
   userTransactions: Expense[] = [];
   totalExpenses: number = 0;
   expensesByParticipant: Map<string, number> = new Map();
-  
-  private subscriptions: Subscription = new Subscription();
+  isLoading: boolean = true;
+  groupNotFound: boolean = false;
+  dataLoaded: boolean = false;
+
   private groupId: string = '';
+  private userId: string = '';
 
   constructor(
-    private expenseService: ExpenseService,
+    private memberViewService: MemberViewService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    this.initializeSubscriptions();
     this.loadInitialData();
   }
 
-  private initializeSubscriptions(): void {
-    // Subscribe to current group updates
-    this.subscriptions.add(
-      this.expenseService.currentGroup$.subscribe(group => {
-        this.currentGroup = group;
-        if (this.currentGroup) {
-          this.calculateUserData();
-        }
-      })
-    );
-
-    // Subscribe to expenses updates
-    this.subscriptions.add(
-      this.expenseService.expenses$.subscribe(expenses => {
-        if (this.currentGroup) {
-          this.calculateUserData();
-        }
-      })
-    );
-
-    // Subscribe to route parameters for member view access
-    this.subscriptions.add(
-      this.route.paramMap.subscribe(params => {
-        const groupId = params.get('groupId');
-        if (groupId) {
-          this.groupId = groupId;
-          this.loadGroupById(groupId);
-        }
-      })
-    );
-  }
-
   private loadInitialData(): void {
-    // For member view, we don't need user authentication
-    // Just load the group from the route parameter
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.subscribe((params) => {
+      const userId = params.get('userId');
       const groupId = params.get('groupId');
-      if (groupId) {
-        this.loadGroupById(groupId);
+
+      if (userId && groupId) {
+        this.userId = userId;
+        this.groupId = groupId;
+        this.loadMemberViewData(userId, groupId);
       } else {
-        this.currentGroup = null;
+        this.handleGroupNotFound();
       }
     });
   }
 
-  private loadGroupById(groupId: string): void {
-    const group = this.expenseService.getGroupById(groupId);
+  private loadMemberViewData(userId: string, groupId: string): void {
+    this.isLoading = true;
+    this.groupNotFound = false;
+    this.dataLoaded = false;
+
+    // Check if user data exists
+    if (!this.memberViewService.hasUserData(userId)) {
+      this.handleGroupNotFound();
+      return;
+    }
+
+    // Load group data
+    const group = this.memberViewService.getGroupById(userId, groupId);
+
     if (group) {
       this.currentGroup = group;
-      this.expenseService.setCurrentGroup(group);
-      this.calculateUserData();
+      this.calculateGroupData(userId, groupId);
     } else {
-      console.error('Group not found:', groupId);
-      this.currentGroup = null;
+      this.handleGroupNotFound();
     }
   }
 
-  private calculateUserData(): void {
+  private calculateGroupData(userId: string, groupId: string): void {
+    if (!this.currentGroup) {
+      this.handleGroupNotFound();
+      return;
+    }
+
+    try {
+      // Get expenses from user's storage
+      const expenses = this.memberViewService.getExpensesForGroup(
+        userId,
+        groupId
+      );
+
+      this.userTransactions = expenses.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      // Calculate everything from the data
+      this.calculateBalances(expenses);
+      this.calculateSettlements();
+      this.calculateExpensesByParticipant(expenses);
+      this.totalExpenses = expenses.reduce(
+        (total, expense) => total + expense.amount,
+        0
+      );
+
+      this.isLoading = false;
+      this.dataLoaded = true;
+    } catch (error) {
+      console.error('Error calculating member view data:', error);
+      this.handleGroupNotFound();
+    }
+  }
+
+  private calculateBalances(expenses: Expense[]): void {
     if (!this.currentGroup) return;
 
-    console.log('Calculating user data for group:', this.currentGroup.name);
-    
-    // Get all balances
-    this.balances = this.expenseService.calculateBalances(this.currentGroup.id);
-    
-    // For member view, we don't calculate user-specific balance since user is not logged in
-    // Instead, we'll show all balances and let the user identify themselves
-    this.userBalance = 0;
-    
-    // Get all settlements (show all settlements in the group)
-    const allSettlements = this.expenseService.getSimplifiedBalances(this.currentGroup.id);
-    this.userSettlements = allSettlements; // Show all settlements
-    
-    // Get total expenses
-    this.totalExpenses = this.expenseService.getTotalExpenses(this.currentGroup.id);
-    
-    // Get expenses by participant
-    this.expensesByParticipant = this.expenseService.getExpensesByParticipant(this.currentGroup.id);
-    
-    // Get all transactions
-    this.userTransactions = this.expenseService.getExpenses(this.currentGroup.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    this.balances = new Map<string, number>();
 
-    console.log('Member view data calculated:', {
-      totalExpenses: this.totalExpenses,
-      settlements: this.userSettlements.length,
-      transactions: this.userTransactions.length
+    // Initialize all participants with zero balance
+    this.currentGroup.participants.forEach((participant) => {
+      this.balances.set(participant, 0);
+    });
+
+    // Calculate balances from expenses
+    expenses.forEach((expense) => {
+      if (!expense.settled) {
+        const amountPerPerson = expense.amount / expense.participants.length;
+
+        // Add to paidBy
+        this.balances.set(
+          expense.paidBy,
+          (this.balances.get(expense.paidBy) || 0) + expense.amount
+        );
+
+        // Subtract from participants
+        expense.participants.forEach((participant) => {
+          this.balances.set(
+            participant,
+            (this.balances.get(participant) || 0) - amountPerPerson
+          );
+        });
+      }
     });
   }
 
-  // Add this method to get absolute value for template
+  private calculateSettlements(): void {
+    const transactions: { from: string; to: string; amount: number }[] = [];
+    const balanceArray = Array.from(this.balances.entries()).map(
+      ([name, balance]) => ({
+        name,
+        balance,
+      })
+    );
+
+    // Sort: debtors (negative) first, creditors (positive) last
+    balanceArray.sort((a, b) => a.balance - b.balance);
+
+    let i = 0;
+    let j = balanceArray.length - 1;
+
+    while (i < j) {
+      const debtor = balanceArray[i];
+      const creditor = balanceArray[j];
+
+      if (Math.abs(debtor.balance) < 0.01 && creditor.balance < 0.01) {
+        break;
+      }
+
+      const amount = Math.min(Math.abs(debtor.balance), creditor.balance);
+
+      if (amount > 0.01) {
+        transactions.push({
+          from: debtor.name,
+          to: creditor.name,
+          amount: parseFloat(amount.toFixed(2)),
+        });
+
+        debtor.balance += amount;
+        creditor.balance -= amount;
+
+        if (Math.abs(debtor.balance) < 0.01) i++;
+        if (creditor.balance < 0.01) j--;
+      } else {
+        break;
+      }
+    }
+
+    this.userSettlements = transactions;
+  }
+
+  private calculateExpensesByParticipant(expenses: Expense[]): void {
+    this.expensesByParticipant = new Map<string, number>();
+
+    expenses.forEach((expense) => {
+      const currentPaid = this.expensesByParticipant.get(expense.paidBy) || 0;
+      this.expensesByParticipant.set(
+        expense.paidBy,
+        currentPaid + expense.amount
+      );
+    });
+  }
+
+  private handleGroupNotFound(): void {
+    this.groupNotFound = true;
+    this.isLoading = false;
+    this.currentGroup = null;
+  }
+
+  // ========== PUBLIC METHODS FOR TEMPLATE ==========
+
   getAbsoluteValue(value: number): number {
     return Math.abs(value);
   }
@@ -137,20 +215,20 @@ export class MemberViewComponent implements OnInit, OnDestroy {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
   getParticipantCharged(participant: string): number {
-    const expenses = this.expenseService.getExpenses(this.currentGroup?.id || '');
+    const expenses = this.userTransactions;
     let charged = 0;
-    
-    expenses.forEach(expense => {
+
+    expenses.forEach((expense) => {
       if (expense.participants.includes(participant)) {
         charged += expense.amount / expense.participants.length;
       }
     });
-    
+
     return charged;
   }
 
@@ -158,41 +236,94 @@ export class MemberViewComponent implements OnInit, OnDestroy {
     return this.expensesByParticipant.get(participant) || 0;
   }
 
-  // Since user is not logged in, we can't calculate user-specific shares
-  // These methods are kept for template compatibility but won't be used meaningfully
+  getParticipantBalance(participant: string): number {
+    return this.balances.get(participant) || 0;
+  }
+
   getUserShare(expense: Expense): number {
     return expense.amount / expense.participants.length;
   }
 
-  isUserInvolvedInExpense(expense: Expense): boolean {
-    // Since user is not logged in, we can't determine if they're involved
-    // Return true to show all expense details
-    return true;
+  participantOwes(participant: string): boolean {
+    return this.getParticipantBalance(participant) < 0;
   }
 
-  markExpenseAsSettled(expense: Expense): void {
-    // Disable this functionality for member view since users aren't authenticated
-    alert('This feature is not available in member view. Please log in to mark expenses as settled.');
+  participantIsOwed(participant: string): boolean {
+    return this.getParticipantBalance(participant) > 0;
   }
 
-  markAsPaid(settlement: { from: string, to: string, amount: number }): void {
-    // Disable this functionality for member view since users aren't authenticated
-    alert('This feature is not available in member view. Please log in to mark payments as completed.');
+  getDebtors(): string[] {
+    return Array.from(this.balances.entries())
+      .filter(([_, balance]) => balance < 0)
+      .map(([participant, _]) => participant);
   }
 
+  getCreditors(): string[] {
+    return Array.from(this.balances.entries())
+      .filter(([_, balance]) => balance > 0)
+      .map(([participant, _]) => participant);
+  }
+
+  getAllParticipants(): string[] {
+    return this.currentGroup?.participants || [];
+  }
+
+  // Navigation methods
   goBackToGroups(): void {
-    // Redirect to login page instead of groups since user might not be logged in
+    this.router.navigate(['/login']);
+  }
+
+  // Read-only mode messages
+  showReadOnlyMessage(): void {
+    alert(
+      'This is a read-only view. To edit expenses, please ask the group owner to share the main app.'
+    );
+  }
+
+  goToLogin(): void {
     this.router.navigate(['/login']);
   }
 
   refreshData(): void {
-    if (this.currentGroup) {
-      this.expenseService.refreshAllData();
-      this.calculateUserData();
+    if (this.userId && this.groupId) {
+      this.loadMemberViewData(this.userId, this.groupId);
     }
   }
 
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
+  shareReport(): void {
+    if (!this.currentGroup) return;
+
+    const currentUrl = window.location.href;
+
+    navigator.clipboard
+      .writeText(currentUrl)
+      .then(() => {
+        alert('Report link copied to clipboard!');
+      })
+      .catch((err) => {
+        const textArea = document.createElement('textarea');
+        textArea.value = currentUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Report link copied to clipboard!');
+      });
+  }
+
+  markExpenseAsSettled(expense: Expense): void {
+    this.showReadOnlyMessage();
+  }
+
+  markAsPaid(settlement: { from: string; to: string; amount: number }): void {
+    this.showReadOnlyMessage();
+  }
+
+  isUserInvolvedInExpense(expense: Expense): boolean {
+    return true;
+  }
+
+  hasData(): boolean {
+    return this.dataLoaded && !this.isLoading && !this.groupNotFound;
   }
 }

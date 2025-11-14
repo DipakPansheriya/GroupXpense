@@ -3,6 +3,7 @@ import { ExpenseService } from '../expense.service';
 import { Group } from '../models/group.model';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-balance-view',
@@ -18,7 +19,7 @@ export class BalanceViewComponent implements OnInit, OnDestroy {
   
   private subscriptions: Subscription = new Subscription();
 
-  constructor(private expenseService: ExpenseService, private router: Router) {}
+  constructor(private expenseService: ExpenseService, private router: Router , private authService :AuthService) {}
 
   ngOnInit(): void {
     this.initializeSubscriptions();
@@ -175,17 +176,24 @@ goToMemberView() {
   this.router.navigate(['/member-view', this.currentGroup?.id]);
 }
 
+// In balance-view.component.ts - update copyMemberViewLink method
 copyMemberViewLink(): void {
   if (!this.currentGroup) {
     alert('No group selected');
     return;
   }
 
-  const memberViewUrl = `${window.location.origin}/member-view/${this.currentGroup.id}`;
+  const currentUser = this.authService.getCurrentUser();
+  if (!currentUser) {
+    alert('User not logged in');
+    return;
+  }
+
+  // Generate URL with userId and groupId
+  const memberViewUrl = `${window.location.origin}/member-view/${currentUser.id}/${this.currentGroup.id}`;
   
   // Copy to clipboard
   navigator.clipboard.writeText(memberViewUrl).then(() => {
-    // Show success message
     this.showToast('Member view link copied to clipboard!');
   }).catch(err => {
     // Fallback for older browsers

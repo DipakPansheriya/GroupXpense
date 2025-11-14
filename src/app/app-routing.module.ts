@@ -5,7 +5,7 @@ import { GroupListComponent } from './group-list/group-list.component';
 import { LoginComponent } from './login/login.component';
 import { CompleteProfileComponent } from './complete-profile/complete-profile.component';
 import { MemberViewComponent } from './member-view/member-view.component';
-import { AuthGuard } from './auth.guard'; // Import the guard
+import { AuthGuard } from './auth.guard';
 
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' }, 
@@ -16,8 +16,8 @@ const routes: Routes = [
   { path: 'balances', component: BalanceViewComponent, canActivate: [AuthGuard] },
   { path: 'complete-profile', component: CompleteProfileComponent, canActivate: [AuthGuard] },
   
-  // Public route - no login required
-  { path: 'member-view/:groupId', component: MemberViewComponent }, 
+  // Public route - no login required (pass userId and groupId)
+  { path: 'member-view/:userId/:groupId', component: MemberViewComponent }, 
   
   { path: '**', redirectTo: 'login' }
 ];
